@@ -21,6 +21,8 @@
   <meta property="og:site_name" content="Cabbi.bo">
   <meta property="og:description" content="Long Live Synesthesia">
 
+  <!--  <link rel="stylesheet" type="text/css" href="main.css">-->
+  
 
   <style>
 
@@ -46,6 +48,11 @@
       z-index   : 999;
     }
 
+    p{
+
+      color:#fff;
+
+    }
     a{
       color: #fff;
       //position: absolute;
@@ -76,6 +83,63 @@
       padding:10px;
     }
 
+    #social{
+
+  pointer-events  : auto;
+
+  position:absolute;
+  right:0px;
+  bottom:5px;
+
+  width:100%;
+
+  z-index: 999;
+}
+
+
+.social{
+
+  width:25px;
+  height:25px;
+  display: block;
+
+  opacity:.3;
+  padding:5px;
+  float:right;
+}
+.social:hover{
+
+  opacity: .7;
+
+}
+
+/*#facebook{
+
+  margin: 5px;
+  width:25px;
+  height:25px;
+  display: block;
+
+  opacity:.3;
+  background: url("../lib/img/icons/facebook_1.png");
+  background-size: 100%;
+
+}
+
+#facebook:hover{
+  opacity:1;
+}*/
+
+#titleEP{
+  position: absolute;
+  right: 5px;
+  font-size: 23px;
+  bottom: 35px;
+  opacity: .6;
+  color: #fff;
+}
+
+
   </style>
 </head>
 <body>
@@ -88,7 +152,7 @@
     </a>
     <p>Model from <a href="http://blogs.esa.int/rosetta/2014/10/03/measuring-comet-67pc-g/" target="_blank"> ESA </a></p>
     <p> Drag to Rotate , Scroll to Zoom </p>
-    Loading models will take a bit<br/>
+    <p>Loading models will take a bit...</p><br/>
     
     <p>@Cabbibo</p>
   
@@ -110,6 +174,7 @@
 <script src = "lib/leap.min.js"               ></script>
 <script src = "lib/LeapTrackballControls.js"  ></script>
 <script src = "lib/GUI.js"                    ></script>
+<script src = "lib/addSocialMedia.js"         ></script>
 
 <script>
 
@@ -133,7 +198,7 @@
   var controller = new Leap.Controller();
   controller.connect();
 
-
+addSocialMedia(SOCIAL_MEDIA);
 
     var audio = new Audio(),
   // `stream_url` you'd get from 

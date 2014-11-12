@@ -1,0 +1,471 @@
+<html>
+
+  <head>
+      <meta name="twitter:card" content="photo">
+  <meta name="twitter:site" content="@cabbibo">
+  <meta name="twitter:creator" content="@cabbibo">
+  <meta name="twitter:url" content="http://cabbi.bo">
+  <meta name="twitter:title" content="Long Live Synesthesia">
+  <meta name="twitter:description" content="Long Live Synesthesia">
+  <meta name="twitter:creator" content="@cabbibo">
+  <meta name="twitter:image" content="http://cabbi.bo/image.png">
+  <meta name="twitter:image:width" content="1440">
+  <meta name="twitter:image:height" content="900">
+  <meta name="twitter:domain" content="cabbi.bo">
+  <meta itemprop="name" content="Cabbi.bo">
+  <meta itemprop="description" content="Long Live Synesthesia">
+  <meta itemprop="image" src="http://cabbi.bo/image.png">
+  <meta property="og:title" content="Cabbi.bo">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="http://cabbi.bo/image.png"/>
+  <meta property="og:site_name" content="Cabbi.bo">
+  <meta property="og:description" content="Long Live Synesthesia">
+
+
+  <style>
+
+    @font-face {
+      font-family: "GeoSans";
+      src: url("lib/GeosansLight.ttf");
+    }
+    html{ color:#fff; background:#000; font-family:"GeoSans" }
+
+    #container{
+      width      : 100%;
+      height     : 100%;
+      position   : absolute;
+      top        : 0px;
+      left       : 0px;
+      background : #000;
+    }
+
+    #stats{
+      position  : absolute;
+      bottom    : 0px;
+      right     : 0px;
+      z-index   : 999;
+    }
+
+    a{
+      color: #fff;
+      //position: absolute;
+     // z-index: 999;
+    }
+
+    #loading{
+
+      width:100%;
+      text-align:center;
+      padding-top:100px;
+      font-size:25px;
+
+    }
+
+    #GUI{
+
+      position:fixed;
+      top:0px;
+      right:0px;
+      z-index:999;
+
+    }
+
+    h1{
+
+      margin:0px;
+      padding:10px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    
+    <a href="https://soundcloud.com/chrome-sparks/enter-the-chrome-forest" target="_blank"> 
+      <h1> Enter the Chrome Forest </h1>
+      <h2> Chrome Sparks </h2>
+    </a>
+    <p> Procedural Coral by <a href="http://inconvergent.net/" target="_blank"> @inconvergent </a></p>
+    <p> Drag to Rotate , Scroll to Zoom </p>
+    Loading models will take a while,<br/>
+    So come back when you hear music<br/>
+    Thanks for watching.</p>
+    
+    <p>@Cabbibo</p>
+  
+  </div>
+
+  <div id="GUI"></div>
+<script src = "lib/underscore.js"             ></script>
+<script src = "lib/three.js"                  ></script>
+<script src = "lib/jquery.min.js"             ></script>
+<script src = "lib/stats.min.js"              ></script>
+<script src = "lib/TrackballControls.js"      ></script>
+<script src = "lib/ShaderLoader.js"           ></script>
+<script src = "lib/OBJLoader.js"              ></script>
+<script src = "lib/Stream.js"                 ></script>
+<script src = "lib/AudioController.js"        ></script>
+<script src = "lib/UserAudio.js"              ></script>
+<script src = "lib/AudioTexture.js"           ></script>
+<script src = "lib/dat.gui.min.js"            ></script>
+<script src = "lib/leap.min.js"               ></script>
+<script src = "lib/LeapTrackballControls.js"  ></script>
+<script src = "lib/GUI.js"                    ></script>
+
+<script>
+
+  console.log('Loading');
+
+  var container , camera, scene, renderer , stats;
+
+  var sceneSize = 5000;
+
+  var andersGeo;
+  var loaded = 0;
+  var neededToLoad = 2;
+
+  var clock = new THREE.Clock();
+
+  var audioController = new AudioController();
+
+ // audioController.mute.gain.value = 0;
+
+
+  var controller = new Leap.Controller();
+  controller.connect();
+
+
+
+    var audio = new Audio(),
+  // `stream_url` you'd get from 
+  // requesting http://api.soundcloud.com/tracks/6981096.json
+  url = 'http://api.soundcloud.com/tracks/147232135/stream' +
+        '?client_id=2400df97862fa2c06f486af524e4f974';
+
+  audio.src = url;
+
+  var source = audioController.ctx.createMediaElementSource(audio);
+  source.connect(audioController.gain);
+
+  console.log( source );
+  
+
+
+  var loader  = new THREE.OBJLoader();
+  loader.load( 'models/rosetta.obj' , function( obj ){
+
+    cometGeo = obj.children[0].geometry;
+    cometGeo.computeFaceNormals();
+    cometGeo.computeVertexNormals();
+
+    //scene.add( obj );
+
+    MAIN_OBJ = obj;
+   
+    console.log('geo done');
+    onLoad();
+
+  });
+
+ 
+
+  var mossNormal = THREE.ImageUtils.loadTexture( 'img/normals/moss_normal_map.jpg' )  
+  mossNormal.wrapS = THREE.RepeatWrapping; 
+  mossNormal.wrapT = THREE.RepeatWrapping; 
+
+  var cragNormal = THREE.ImageUtils.loadTexture( 'img/normals/7723-normal.jpg' );
+  cragNormal.wrapS = THREE.RepeatWrapping; 
+  cragNormal.wrapT = THREE.RepeatWrapping; 
+
+
+  var snowNormal = THREE.ImageUtils.loadTexture( 'img/normals/ice-snow.jpg' );
+  snowNormal.wrapS = THREE.RepeatWrapping; 
+  snowNormal.wrapT = THREE.RepeatWrapping;
+
+  var timer = { type:"f" , value:0 }
+  var dT = { type:"f" , value:0 }
+
+
+  var shaders = new ShaderLoader('shaders');
+
+  shaders.load( 'fs-sketch' , 'sketch' , 'fragment' );
+  shaders.load( 'vs-sketch' , 'sketch' , 'vertex' );
+
+  shaders.shaderSetLoaded = function(){
+   onLoad();
+  }
+
+
+  function init(){
+
+
+    
+    // Getting the container in the right location
+    container     = document.createElement( 'div' );
+    container.id  = 'container';
+    
+    document.body.appendChild( container );
+
+    // Getting the stats in the right position
+    stats = new Stats();
+    stats.domElement.id = 'stats';
+    //document.body.appendChild( stats.domElement );
+
+
+    // Setting up our Renderer
+    //renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer( { antialias: true} );
+    renderer.autoClear = false;
+ // renderer.autoClear = false;
+   // renderer.clear();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    container.appendChild( renderer.domElement );
+
+    scene = new THREE.Scene();
+    
+    camera = new THREE.PerspectiveCamera( 
+      50 ,
+      window.innerWidth / window.innerHeight,
+      sceneSize / 1000 ,
+      sceneSize * 400
+    );
+
+    // placing our camera position so it can see everything
+    camera.position.z = 100;
+
+    camera.velocity = new THREE.Vector3();
+
+    fallback = new THREE.TrackballControls( camera , renderer.domElement );
+    
+    controls = new THREE.LeapTrackballControls( camera , controller , fallback );
+
+    controls.zoom = 100;
+    controls.maxZoom = 200;
+    controls.minZoom = 50;
+    controls.zoomDampening = .95;
+    controls.zoomMultiplier = 3;
+    controls.rotationSpeed = 3;
+    controls.rotationDampening = .95;
+
+ 
+    // Making sure our renderer is always the right size
+    window.addEventListener( 'resize', onWindowResize , false );
+
+
+    /*
+
+      SKULL
+
+    */
+
+    var tNormal = mossNormal; 
+    uniforms = {
+
+      lightPos: { type:"v3" , value: new THREE.Vector3(100,0,0)},
+      tNormal:{type:"t",value:tNormal},
+      time:timer,
+      t_audio:{ type:"t" , value: audioController.texture },
+
+      outline: { type:"f" , value: 0 },
+      tmp_color1:{ type:"color" , value: 0xffd511 },
+      tmp_color2:{ type:"color" , value: 0xfc11e0 },
+      tmp_color3:{ type:"color" , value: 0xff0c0c },
+      tmp_color4:{ type:"color" , value: 0x024cff},
+
+      color1:{ type:"c" , value : new THREE.Color( 0xffd511 ) },
+      color2:{ type:"c" , value : new THREE.Color( 0xfc11e0 ) },
+      color3:{ type:"c" , value : new THREE.Color( 0xff0c0c ) },
+      color4:{ type:"c" , value : new THREE.Color( 0x024cff ) },
+
+    }
+
+
+
+    vertexShader   = shaders.vertexShaders.sketch;
+    fragmentShader = shaders.fragmentShaders.sketch;
+
+    material = new THREE.ShaderMaterial({
+
+      uniforms: uniforms,
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+     // side:THREE.DoubleSide,
+      transparent: true
+
+    });
+
+   
+    /* var m = new THREE.MeshNormalMaterial({
+     shading: THREE.SmoothShading 
+    });
+    mesh = new THREE.Mesh( andersGeo , material );// material );
+
+   mesh.scale.multiplyScalar( 20.5 );
+
+    mesh.position.x = 0;
+    mesh.position.y = 0;
+    scene.add( mesh );*/
+
+    var m = new THREE.MeshNormalMaterial({
+     shading: THREE.SmoothShading 
+    });
+
+    mesh = new THREE.Mesh( cometGeo , material );
+    scene.add( mesh );
+
+    mesh.scale.multiplyScalar( 40 );
+    gem = mesh;
+
+    wf = new THREE.Mesh( cometGeo , new THREE.MeshBasicMaterial({
+    
+      wireframe: true,
+      //color: uniforms.color4.value
+
+
+    }) );
+
+   wf.material.color = uniforms.color4.value
+
+
+    wf.scale.multiplyScalar( 40 );
+    scene.add( wf );
+    var gHolder = document.createElement('div');
+
+    var tHolder = document.createElement('h1');
+
+    tHolder.innerHTML ='Rosseta';
+    tHolder.style.background = 'black';
+    gHolder.appendChild( tHolder );
+    var guis = document.getElementById( 'GUI' );
+
+    guis.appendChild( gHolder );
+
+  /*  $(tHolder).click(function(){
+      this.toggle();
+      if( this.active ){
+        this.tHolder.className = "active";
+      }else{
+        this.tHolder.className = "";
+      }
+    }.bind( gem ));*/
+
+
+    $(tHolder).hover(function(){
+      this.gui.gui.open();
+    }.bind( gem ));
+
+    $(gHolder).hover(function(){},function(){
+      this.gui.gui.close();
+    }.bind(gem));
+
+    gem.tHolder = tHolder;
+
+    gem.gui = new GUI( uniforms , {
+     domElement: gHolder 
+    });
+
+    console.log( source );
+
+    var stars = THREE.ImageUtils.loadTexture( 'img/starMap.png' );
+    var geo = new THREE.SphereGeometry(4000 , 50 , 50 )
+    var mat = new THREE.MeshBasicMaterial({
+
+      side: THREE.BackSide,
+      map: stars,
+    //  depthWrite: false
+
+    });
+    starMap = new THREE.Mesh( geo , mat );
+
+    scene.add( starMap );
+    starMap.position = camera.position;
+
+
+   /* if( source.mediaElement ){
+      source.mediaElement.play();
+    }else{
+
+      audio.play();
+
+
+    }*/
+  }
+
+
+  function animate(){
+
+    audioController.update();
+
+    dT.value = clock.getDelta();
+    timer.value += dT.value;
+
+    var norm = camera.position.clone().normalize();
+    norm.multiplyScalar( Math.PI * 2 );
+   
+   // crownMat.uniforms.texScale.value = .1 * Math.sin( norm.x ) * Math.cos( norm.y );
+   // crownMat.uniforms.normalScale.value = 1. + Math.sin( norm.z )
+
+    stats.update();
+
+    controls.update();
+
+
+
+  // renderer.clear();
+
+
+
+  material.uniforms.outline.value = 1;
+  //material.side = THREE.BackSide;
+  material.needsUpdate = true;
+   material.depthWrite = false;
+    renderer.render( scene , camera );
+
+
+    material.depthWrite = true;
+    material.uniforms.outline.value = 0;
+      material.side = THREE.FrontSide;
+  material.needsUpdate = true;
+
+
+   starMap.visible = false;
+    renderer.render( scene, camera );
+
+
+
+    requestAnimationFrame( animate );
+
+
+  }
+
+  // Resets the renderer to be the proper size
+  function onWindowResize(){
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+  }
+
+
+  function onLoad(){
+
+
+    loaded ++;
+
+    if( loaded === neededToLoad ){
+
+      init();
+      animate();
+      //stream.play();
+
+    }
+
+  }
+</script>
+
+
+</body>
+</html>
